@@ -1,0 +1,302 @@
+#+TITLE: Algae
+#+PROPERTY: header-args:python :session /Users/charlesprat/Library/Jupyter/runtime/kernel-89637d0a-f14d-444c-b6f9-c4641004f54c.json
+#+PROPERTY: header-args:python+ :pandoc t
+#+PROPERTY: header-args:python+ :dir .
+#+PROPERTY: header-args:python+ :cache yes
+
+* Chargement des données
+
+/Description des données :/
+
+#+begin_src python :exports results
+
+  import pandas as pd
+  import numpy as np
+  import matplotlib.pyplot as plt
+
+  df = pd.read_csv("./algae-1.csv", sep=";").drop(columns=["Unnamed: 0"])
+
+  def str2float(string):
+	return float(string.replace(",","."))
+  df.wind = df.wind.apply(str2float)
+  df.discharge = df.discharge.apply(str2float)
+  df.rainfall = df.rainfall.apply(str2float)
+  df.temperature = df.temperature.apply(str2float)
+
+  df.describe().style.format(precision=1)
+
+#+end_src
+
+#+RESULTS[05b05c53cbb69df9a741ca931f5d1e97ec9d7a49]:
+:RESULTS:
+|   | wind       | rainfall  | discharge    | temperature | nb.tides | risk.label |
+|---+------------+-----------+--------------+-------------+----------+------------|
+| 0 | 92.076982  | 3.060029  | 3337.323920  | 1.915210    | 3        | 0          |
+| 1 | 97.642919  | 3.016591  | 3375.333335  | 14.062464   | 3        | 0          |
+| 2 | 100.070392 | 43.292709 | 12644.182793 | 19.089275   | 6        | 1          |
+| 3 | 74.032851  | 2.732708  | 3937.854285  | 7.867494    | 7        | 0          |
+| 4 | 87.415441  | 2.701708  | 3500.458714  | 13.620634   | 6        | 0          |
+:END:
+
+
+
+
+* Exploration des données
+
+#+begin_src python :exports none
+    from pandas_profiling import ProfileReport
+    profile = ProfileReport(df, title="Report")
+    profile.to_file("algae.html")
+#+end_src
+
+#+RESULTS[b2e10bb4d565366229eb91b3a32af72c31791f10]:
+:RESULTS:
+: Summarize dataset:   0%|          | 0/5 [00:00<?, ?it/s]
+: Generate report structure:   0%|          | 0/1 [00:00<?, ?it/s]
+: Render HTML:   0%|          | 0/1 [00:00<?, ?it/s]
+: Export report to file:   0%|          | 0/1 [00:00<?, ?it/s]
+:END:
+
+** Distribution des features en fonction de la cible 'risk.label'
+
+#+begin_src python :exports both
+
+  def plot_feat_vs_label(ax, feature):
+
+      bins = np.linspace(np.quantile(df[feature],.01),
+			 np.quantile(df[feature],.99),
+			 50)
+      kwargs = {"bins": bins, "alpha": .5, "density": True}
+      ax.hist(df.loc[df["risk.label"] == 1, feature], label="risk label = 1", **kwargs)
+      ax.hist(df.loc[df["risk.label"] == 0, feature], label="risk label = 0", **kwargs)
+      ax.set_title(feature)
+      ax.legend()
+
+  f, vax = plt.subplots(2, 3, figsize=(10, 7))
+
+  fax = vax.flat
+
+  for feature in df.columns[:-1]:
+      ax = next(fax)
+      plot_feat_vs_label(ax, feature)
+
+
+#+end_src
+
+#+RESULTS[00c69c65d04978a3c46dbdb0566ffc9dffbf1a8b]:
+[[file:./.ob-jupyter/9a83fd37b96d4e9231fa5eebedccaf55c29ea401.png]]
+
+
+
+
+
+
+
+
+
+
+
+Manisfestement le rainfall est parfaitement discriminant pour notre prédiction sur 'risk.label'.
+Vérification en prenant un seuil à 6 :
+
+#+begin_src python :exports both
+
+  df.groupby("risk.label").agg(
+      a=("rainfall",lambda x: sum(x<6)),
+      b=("rainfall",lambda x: sum(x>=6))
+  ).rename(columns={'a': "rainfall < 6", "b": "rainfall >= 6"})
+
+
+#+end_src
+
+#+RESULTS[ce98fd772033e5c02fbfb99cf6eb3e8d0be6e79c]:
+:RESULTS:
+|            | rainfall < 6 | rainfall >= 6 |
+|------------+--------------+---------------|
+| risk.label |              |               |
+| 0          | 3467         | 0             |
+| 1          | 0            | 1322          |
+:END:
+
+Ensuite dans l'ordre des features qui paraissent être de la discriminante à la moins, on trouve : discharge, wind, nb.tides et enfin température qui semble très peu influente sur notre prédiction.
+
+On poursuit l'étude en considérant que nous n'avons pas accès au rainfall.
+
+
+** Corrélation des features entre elles
+
+#+begin_src python :exports both
+  import seaborn as sns
+    
+  corr = df.corr(method = 'kendall')
+
+  sns.heatmap(corr, annot = True)
+
+  plt.show()
+#+end_src
+
+#+RESULTS[29f023fede788c64431ec633b2c2ab115f48491d]:
+[[file:./.ob-jupyter/7d43d21929b8f4a9207aa8ccae7d03cb503855d8.png]]
+
+
+On confirme bien la faible influence de la température. Si on se passe de rainfall, on voit que discharge va devenir la feature la plus importante. Elle est d'ailleurs aussi très corrélée à rainfall.
+
+
+** Autocorrelation de chaque feature
+
+
+#+begin_src python :exports both
+
+  def my_autocorr_plot(feat, ax):
+      xn = df[feat]-df[feat].mean()
+      xn = xn/np.sqrt((xn**2).mean())
+      ax.plot(np.roll(np.correlate(xn,xn,'full'),len(xn))[:10] / len(xn))
+      ax.set_title(feat)
+
+  f, (ax, ax1, ax2) = plt.subplots(1,3)
+  my_autocorr_plot("wind", ax)
+  my_autocorr_plot("temperature", ax1)
+  my_autocorr_plot("discharge", ax2)
+
+  f.suptitle("Autocorrelations")
+  plt.show()
+#+end_src
+
+#+RESULTS[1479d932acaeee88c1a55b49e8a80ac8851ede2f]:
+:RESULTS:
+: Text(0.5, 0.98, 'Autocorrelations')
+[[file:./.ob-jupyter/6378f56e26e9983a582b23046a12e68bc959a83d.png]]
+:END:
+
+
+* Performances des modèles de base
+
+** Seuil sur le discharge
+
+
+#+begin_src python :exports both
+  thresh = 4000
+  df.groupby("risk.label").agg(
+      a=("discharge",lambda x: sum(x <thresh )),
+      b=("discharge",lambda x: sum(x >= thresh))
+  ).rename(columns={'a': f"discharge < {thresh}", "b": f"discharge >= {thresh}"})
+
+
+#+end_src
+
+#+RESULTS[7b730d1bd923ff06a874fe6e7935be17fc49f88d]:
+:RESULTS:
+|            | discharge < 4000 | discharge >= {thresh} |
+|------------+------------------+-----------------------|
+| risk.label |                  |                       |
+| 0          | 3105             | 362                   |
+| 1          | 133              | 1189                  |
+:END:
+
+#+begin_src python :exports results
+from sklearn.metrics import f1_score, recall_score, precision_score
+y_pred = df.discharge > thresh
+y_true = df["risk.label"]
+
+print(f"precision: {precision_score(y_true, y_pred):.2f}")
+print(f"recall: {recall_score(y_true, y_pred):.2f}")
+print(f"f1: {f1_score(y_true, y_pred):.2f}")
+
+#+end_src
+
+#+RESULTS[e0b3da48912f273bbabe8dd41c6f63fd805638b1]:
+: precision: 0.77
+: recall: 0.90
+: f1: 0.83
+
+** Quelques modèles basiques
+
+#+begin_src python :exports none
+  from sklearn.model_selection import train_test_split
+
+  features = df.drop(columns=["rainfall", "risk.label"])
+  target = df["risk.label"]
+  X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.15)
+
+  target.mean(), y_test.mean()
+
+#+end_src
+
+#+RESULTS[b5a2c30abc53476ee557fc88f50992b26bf11bda]:
+| 0.2760492795990812 | 0.2906815020862309 |
+
+
+#+begin_src python :exports both
+  from sklearn.linear_model import LogisticRegression
+  from sklearn.naive_bayes import GaussianNB
+
+  models = {"naive bayes": GaussianNB(),
+	    "logistic regression": LogisticRegression()}
+  # fit models
+  for name, model in models.items():
+      model.fit(X_train, y_train)
+
+  def my_scores(model):
+      return {
+	  "precision": precision_score(y_test, model.predict(X_test)),
+	  "recall": recall_score(y_test, model.predict(X_test)),
+	  "f1": f1_score(y_test, model.predict(X_test)), }
+
+  scores = pd.DataFrame.from_dict(
+      {name: my_scores(model)
+	    for name, model in models.items()}, orient='index'
+  )
+
+
+  display(scores.style.format(precision=2))
+
+#+end_src
+
+#+RESULTS[40866e5394ff02001e0c01b4f8e2ed7900a4c6c8]:
+:RESULTS:
+|                     | precision | recall | f1   |
+|---------------------+-----------+--------+------|
+| naive bayes         | 1.00      | 0.87   | 0.93 |
+| logistic regression | 0.98      | 0.89   | 0.93 |
+:END:
+
+
+
+
+* Estimation bayesienne
+
+** Modélisation
+
+*** indépendance de la température
+
+*** recherche des type de distribution
+
+#+begin_src python :exports results
+
+    from scipy import stats
+    f, vax = plt.subplots(2,4, figsize=(15,5), sharex=True)
+    fax = vax.flat
+    iax = iter(fax)
+
+    label0 = df["risk.label"]==0
+
+    def dist_vs_target(feature, ax1,ax2):
+	  stats.probplot(df.loc[label0,feature], plot=ax1)
+	  ax1.set_title(f"{feature} | risk.label = 0")
+	  ax1.set_xlabel("")
+	  stats.probplot(df.loc[~label0,feature], plot=ax2)
+	  ax2.set_title(f"{feature} | risk.label = 0")
+	  ax2.set_xlabel("")
+
+    dist_vs_target("wind", next(iax), next(iax))
+    dist_vs_target("discharge", next(iax), next(iax))
+    dist_vs_target("temperature", next(iax), next(iax))
+
+    f.tight_layout(pad=1.0)
+    f.suptitle("QQ-plots")
+    plt.show()
+
+ #+end_src
+
+ #+RESULTS[5261a8d88fe9b2b1b8cf322effa3bc62a385e1f8]:
+ [[file:./.ob-jupyter/479f62d2ae987117ccda1f050baffca73ad77c48.png]]
