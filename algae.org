@@ -265,6 +265,10 @@ print(f"f1: {f1_score(y_true, y_pred):.2f}")
 
 * Estimation bayesienne
 
+Si on connait la vraisemmblance /f/ des données /D/ sachant le risk.label, on peut prendre une décision basée sur la formule de Bayes. En effet on a:
+
+$\frac{P(risk = 1 | D, \theta)}{P(risk = 0 | D, \theta)} = \frac{f(D|risk = 1, \theta).P(risk = 1)}{f(D|risk=0, \theta).P(risk = 0)}$
+
 ** Modélisation
 
 *** indépendance de la température
