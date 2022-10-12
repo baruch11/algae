@@ -1,3 +1,5 @@
 /.ob-jupyter/
 /algae-1.csv
 /algae.html
+/__pycache__/
+/.ipynb_checkpoints/
