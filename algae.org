@@ -1,14 +1,16 @@
 #+TITLE: Algae
-#+PROPERTY: header-args:python :session /Users/charlesprat/Library/Jupyter/runtime/kernel-89637d0a-f14d-444c-b6f9-c4641004f54c.json
+#+PROPERTY: header-args:python :session /Users/charlesprat/Library/Jupyter/runtime/kernel-a3a9c270-209d-4474-b519-4d557868c63e.json
 #+PROPERTY: header-args:python+ :pandoc t
 #+PROPERTY: header-args:python+ :dir .
 #+PROPERTY: header-args:python+ :cache yes
+#+PROPERTY: header-args:python+ :tangle yes
+#+PROPERTY: header-args:python+ :exports both
 
 * Chargement des données
 
 /Description des données :/
 
-#+begin_src python :exports results
+#+begin_src python
 
   import pandas as pd
   import numpy as np
@@ -27,17 +29,19 @@
 
 #+end_src
 
-#+RESULTS[05b05c53cbb69df9a741ca931f5d1e97ec9d7a49]:
+#+RESULTS[ccdc39b9cd2f8144bcdb439ff71510d47aaa5f5b]:
 :RESULTS:
-|   | wind       | rainfall  | discharge    | temperature | nb.tides | risk.label |
-|---+------------+-----------+--------------+-------------+----------+------------|
-| 0 | 92.076982  | 3.060029  | 3337.323920  | 1.915210    | 3        | 0          |
-| 1 | 97.642919  | 3.016591  | 3375.333335  | 14.062464   | 3        | 0          |
-| 2 | 100.070392 | 43.292709 | 12644.182793 | 19.089275   | 6        | 1          |
-| 3 | 74.032851  | 2.732708  | 3937.854285  | 7.867494    | 7        | 0          |
-| 4 | 87.415441  | 2.701708  | 3500.458714  | 13.620634   | 6        | 0          |
+|       | wind   | rainfall | discharge | temperature | nb.tides | risk.label |
+|-------+--------+----------+-----------+-------------+----------+------------|
+| count | 4789.0 | 4789.0   | 4789.0    | 4789.0      | 4789.0   | 4789.0     |
+| mean  | 82.4   | 15.6     | 6554.6    | 12.6        | 4.5      | 0.3        |
+| std   | 20.7   | 36.0     | 10177.0   | 6.4         | 2.2      | 0.4        |
+| min   | -19.1  | 2.2      | 1863.1    | 0.1         | 0.0      | 0.0        |
+| 25%   | 68.4   | 2.9      | 3324.5    | 7.9         | 3.0      | 0.0        |
+| 50%   | 83.6   | 3.1      | 3667.2    | 12.0        | 4.0      | 0.0        |
+| 75%   | 97.5   | 13.3     | 4388.8    | 16.7        | 6.0      | 1.0        |
+| max   | 140.6  | 709.3    | 213128.2  | 41.8        | 14.0     | 1.0        |
 :END:
-
 
 
 
@@ -49,13 +53,16 @@
     profile.to_file("algae.html")
 #+end_src
 
-#+RESULTS[b2e10bb4d565366229eb91b3a32af72c31791f10]:
+#+RESULTS[685e1b0cefa59687ed6e9c09837d4022eb8c60c0]:
 :RESULTS:
 : Summarize dataset:   0%|          | 0/5 [00:00<?, ?it/s]
 : Generate report structure:   0%|          | 0/1 [00:00<?, ?it/s]
 : Render HTML:   0%|          | 0/1 [00:00<?, ?it/s]
 : Export report to file:   0%|          | 0/1 [00:00<?, ?it/s]
 :END:
+
+
+
 
 ** Distribution des features en fonction de la cible 'risk.label'
 
@@ -83,18 +90,8 @@
 
 #+end_src
 
-#+RESULTS[00c69c65d04978a3c46dbdb0566ffc9dffbf1a8b]:
-[[file:./.ob-jupyter/9a83fd37b96d4e9231fa5eebedccaf55c29ea401.png]]
-
-
-
-
-
-
-
-
-
-
+#+RESULTS[7a61505daa6eeafdb70cc3ffb80c725a08230a9d]:
+[[file:./.ob-jupyter/dcaa095aaede5b5cbc3b7568f8ebee25fc878026.png]]
 
 Manisfestement le rainfall est parfaitement discriminant pour notre prédiction sur 'risk.label'.
 Vérification en prenant un seuil à 6 :
@@ -109,7 +106,7 @@ Vérification en prenant un seuil à 6 :
 
 #+end_src
 
-#+RESULTS[ce98fd772033e5c02fbfb99cf6eb3e8d0be6e79c]:
+#+RESULTS[be872c665054347f8d9c735c22229186911ba37c]:
 :RESULTS:
 |            | rainfall < 6 | rainfall >= 6 |
 |------------+--------------+---------------|
@@ -117,6 +114,7 @@ Vérification en prenant un seuil à 6 :
 | 0          | 3467         | 0             |
 | 1          | 0            | 1322          |
 :END:
+
 
 Ensuite dans l'ordre des features qui paraissent être de la discriminante à la moins, on trouve : discharge, wind, nb.tides et enfin température qui semble très peu influente sur notre prédiction.
 
@@ -135,8 +133,9 @@ On poursuit l'étude en considérant que nous n'avons pas accès au rainfall.
   plt.show()
 #+end_src
 
-#+RESULTS[29f023fede788c64431ec633b2c2ab115f48491d]:
-[[file:./.ob-jupyter/7d43d21929b8f4a9207aa8ccae7d03cb503855d8.png]]
+#+RESULTS[67aaafa1f544773b02f59f68b91a9abe7d1cdd8a]:
+[[file:./.ob-jupyter/103229f3a8de631c6f433428a7bdb88b097dea0b.png]]
+
 
 
 On confirme bien la faible influence de la température. Si on se passe de rainfall, on voit que discharge va devenir la feature la plus importante. Elle est d'ailleurs aussi très corrélée à rainfall.
@@ -147,26 +146,26 @@ On confirme bien la faible influence de la température. Si on se passe de rainf
 
 #+begin_src python :exports both
 
+  import matplotlib.pyplot as plt
   def my_autocorr_plot(feat, ax):
       xn = df[feat]-df[feat].mean()
       xn = xn/np.sqrt((xn**2).mean())
       ax.plot(np.roll(np.correlate(xn,xn,'full'),len(xn))[:10] / len(xn))
       ax.set_title(feat)
 
-  f, (ax, ax1, ax2) = plt.subplots(1,3)
+  f, (ax, ax1, ax2) = plt.subplots(1,3, figsize=(5,3))
   my_autocorr_plot("wind", ax)
   my_autocorr_plot("temperature", ax1)
   my_autocorr_plot("discharge", ax2)
 
   f.suptitle("Autocorrelations")
+  plt.tight_layout()
   plt.show()
 #+end_src
 
-#+RESULTS[1479d932acaeee88c1a55b49e8a80ac8851ede2f]:
-:RESULTS:
-: Text(0.5, 0.98, 'Autocorrelations')
-[[file:./.ob-jupyter/6378f56e26e9983a582b23046a12e68bc959a83d.png]]
-:END:
+#+RESULTS[d568bfd3b23af2b464f56c1f9adf096eff481c73]:
+[[file:./.ob-jupyter/ccca2e3916ac759b8a835c4bc509e9a8d51dcaf5.png]]
+
 
 
 * Performances des modèles de base
@@ -184,16 +183,17 @@ On confirme bien la faible influence de la température. Si on se passe de rainf
 
 #+end_src
 
-#+RESULTS[7b730d1bd923ff06a874fe6e7935be17fc49f88d]:
+#+RESULTS[6a100c622bf40cad4f2a0ba683c88e48a5014be7]:
 :RESULTS:
-|            | discharge < 4000 | discharge >= {thresh} |
-|------------+------------------+-----------------------|
-| risk.label |                  |                       |
-| 0          | 3105             | 362                   |
-| 1          | 133              | 1189                  |
+|            | discharge < 4000 | discharge >= 4000 |
+|------------+------------------+-------------------|
+| risk.label |                  |                   |
+| 0          | 3105             | 362               |
+| 1          | 133              | 1189              |
 :END:
 
-#+begin_src python :exports results
+
+#+begin_src python :exports both
 from sklearn.metrics import f1_score, recall_score, precision_score
 y_pred = df.discharge > thresh
 y_true = df["risk.label"]
@@ -204,10 +204,13 @@ print(f"f1: {f1_score(y_true, y_pred):.2f}")
 
 #+end_src
 
-#+RESULTS[e0b3da48912f273bbabe8dd41c6f63fd805638b1]:
+#+RESULTS[15dbcc173f2a7db747fd782eacd8044be2babd91]:
 : precision: 0.77
 : recall: 0.90
 : f1: 0.83
+
+
+
 
 ** Quelques modèles basiques
 
@@ -222,8 +225,8 @@ print(f"f1: {f1_score(y_true, y_pred):.2f}")
 
 #+end_src
 
-#+RESULTS[b5a2c30abc53476ee557fc88f50992b26bf11bda]:
-| 0.2760492795990812 | 0.2906815020862309 |
+#+RESULTS[b32c7ff6276fa262b06dd814ba99df08fbd9f216]:
+| 0.2760492795990812 | 0.26425591098748263 |
 
 
 #+begin_src python :exports both
@@ -252,55 +255,157 @@ print(f"f1: {f1_score(y_true, y_pred):.2f}")
 
 #+end_src
 
-#+RESULTS[40866e5394ff02001e0c01b4f8e2ed7900a4c6c8]:
+#+RESULTS[93529832049286af480039859ae96aa9b43e3658]:
 :RESULTS:
+: /Users/charlesprat/miniconda3/lib/python3.9/site-packages/sklearn/linear_model/_logistic.py:444: ConvergenceWarning: lbfgs failed to converge (status=1):
+: STOP: TOTAL NO. of ITERATIONS REACHED LIMIT.
+: 
+: Increase the number of iterations (max_iter) or scale the data as shown in:
+:     https://scikit-learn.org/stable/modules/preprocessing.html
+: Please also refer to the documentation for alternative solver options:
+:     https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+:   n_iter_i = _check_optimize_result(
 |                     | precision | recall | f1   |
 |---------------------+-----------+--------+------|
-| naive bayes         | 1.00      | 0.87   | 0.93 |
-| logistic regression | 0.98      | 0.89   | 0.93 |
+| naive bayes         | 0.99      | 0.85   | 0.92 |
+| logistic regression | 0.97      | 0.88   | 0.93 |
 :END:
-
-
 
 
 * Estimation bayesienne
 
+#+RESULTS:
+| :foreground | default | :background | default | :scale | 1.0 | :html-foreground | Black | :html-background | Transparent | :html-scale | 1.0 | :matchers | (begin $1 $ $$ \( \[) |
+
 Si on connait la vraisemmblance /f/ des données /D/ sachant le risk.label, on peut prendre une décision basée sur la formule de Bayes. En effet on a:
 
-$\frac{P(risk = 1 | D, \theta)}{P(risk = 0 | D, \theta)} = \frac{f(D|risk = 1, \theta).P(risk = 1)}{f(D|risk=0, \theta).P(risk = 0)}$
+\begin{equation}
+{\frac{P(risk = 1 | D, \theta)}{P(risk = 0 | D, \theta)}}\approx{\frac{f(D|risk = 1, \hat{\theta}).P(risk = 1)}{f(D|risk=0, \hat{\theta}).P(risk = 0)}}
+\end{equation}
+
+
 
 ** Modélisation
 
-*** indépendance de la température
+*** indépendance température et risk.label
+
+#+begin_src python
+
+  from scipy import stats
+
+  stats.spearmanr(df.temperature, df["risk.label"])
+  #stats.spearmanr(df.discharge, df["risk.label"])
+  #stats.spearmanr(np.random.randn(1000), np.random.randn(1000))
+
+#+end_src
+
+#+RESULTS[ab82d473d3c30984e26a0419bba71ca4b5d0e391]:
+: SpearmanrResult(correlation=0.06062450480098488, pvalue=2.6911644391237046e-05)
+
 
 *** recherche des type de distribution
 
-#+begin_src python :exports results
+**** QQ-plots 
 
-    from scipy import stats
-    f, vax = plt.subplots(2,4, figsize=(15,5), sharex=True)
-    fax = vax.flat
-    iax = iter(fax)
 
-    label0 = df["risk.label"]==0
 
-    def dist_vs_target(feature, ax1,ax2):
-	  stats.probplot(df.loc[label0,feature], plot=ax1)
-	  ax1.set_title(f"{feature} | risk.label = 0")
-	  ax1.set_xlabel("")
-	  stats.probplot(df.loc[~label0,feature], plot=ax2)
-	  ax2.set_title(f"{feature} | risk.label = 0")
-	  ax2.set_xlabel("")
+#+begin_src python :exports both
 
-    dist_vs_target("wind", next(iax), next(iax))
-    dist_vs_target("discharge", next(iax), next(iax))
-    dist_vs_target("temperature", next(iax), next(iax))
+  from scipy import stats
+  f, vax = plt.subplots(2,4, figsize=(10,5), sharex=True)
+  fax = vax.flat
+  iax = iter(fax)
 
-    f.tight_layout(pad=1.0)
-    f.suptitle("QQ-plots")
-    plt.show()
+  label0 = df["risk.label"]==0
+
+  def dist_vs_target(feature, ax1,ax2, dist1=stats.norm, dist2=stats.norm):
+	stats.probplot(df.loc[label0,feature], plot=ax1, dist=dist1)
+	ax1.set_title(f"{feature} | risk.label = 0\ndist: {dist1.name}")
+	ax1.set_xlabel("")
+	stats.probplot(df.loc[~label0,feature], plot=ax2, dist=dist2)
+	ax2.set_title(f"{feature} | risk.label = 0\ndist: {dist2.name}")
+	ax2.set_xlabel("")
+
+  dist_vs_target("wind", next(iax), next(iax))
+  dist_vs_target("discharge", next(iax), next(iax), dist2=stats.expon)
+  dist_vs_target("temperature", next(iax), next(iax))
+  #dist_vs_target("nb.tides", next(iax), next(iax),dist1=stats.binom)
+
+  f.tight_layout(pad=1.0)
+  f.suptitle("QQ-plots")
+  plt.tight_layout()
+  plt.show()
 
  #+end_src
 
- #+RESULTS[5261a8d88fe9b2b1b8cf322effa3bc62a385e1f8]:
- [[file:./.ob-jupyter/479f62d2ae987117ccda1f050baffca73ad77c48.png]]
+ #+RESULTS[54a45ad21b729a47d942baf7f53a7ba8b233e47f]:
+ [[file:./.ob-jupyter/547ef128e6396d7848967395925677f77d9a7314.png]]
+
+ 
+**** exemple de fit de distribution
+
+#+begin_src python
+  from libalgae import AlgaeClassifier, Distrib
+
+  distrib_dict = {
+      "wind": (Distrib(stats.norm), Distrib(stats.norm)),
+      #"temperature": (Distrib(stats.norm), Distrib(stats.norm)),
+      "discharge": (Distrib(stats.norm), Distrib(stats.weibull_min)),
+  }
+  clf = AlgaeClassifier(distrib_dict)
+  clf.fit(X_train, y_train)
+
+
+  feature_name = "discharge"
+  risk0 = df["risk.label"] == 0
+
+  f, vax = plt.subplots(1,2, figsize=(5,3))
+
+  iax = iter(vax)
+
+  ax = next(iax)
+  ax.hist(df.loc[risk0, feature_name], density=True, alpha=.3)
+  clf.plot_fitted_distrib(ax, feature_name, 0)
+  ax.set_title("risk = 0")
+  ax.legend()
+
+  ax = next(iax)
+  ax.hist(df.loc[~risk0, feature_name], density=True, alpha=.3, bins=50)
+  clf.plot_fitted_distrib(ax, feature_name, 1)
+  ax.set_title("risk = 1")
+  ax.legend()
+
+  f.suptitle(feature_name)
+  plt.tight_layout()
+  plt.show()
+
+#+end_src
+
+#+RESULTS[1aad9c1d34ee175526a487f707e51f0efe2ab789]:
+[[file:./.ob-jupyter/4ee801cb1273cbd6b554480ab9f5c487afe19548.png]]
+
+
+
+** Performance de l'estimateur
+
+#+begin_src python
+
+  results = pd.DataFrame(
+	data=[clf.get_scores(X_train, y_train),
+	      clf.get_scores(X_test, y_test)],
+	index=["train", "test"],
+	columns=["accuracy", "f1"]
+    )
+
+  results.style.format(precision=2)
+
+#+end_src
+
+#+RESULTS[8d7bae4a99f7580a0151d67ef274bf78875b47cb]:
+:RESULTS:
+|       | accuracy | f1   |
+|-------+----------+------|
+| train | 0.95     | 0.91 |
+| test  | 0.96     | 0.93 |
+:END:
+
