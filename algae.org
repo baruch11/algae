@@ -2,7 +2,6 @@
 #+PROPERTY: header-args:python :session /Users/charlesprat/Library/Jupyter/runtime/kernel-a3a9c270-209d-4474-b519-4d557868c63e.json
 #+PROPERTY: header-args:python+ :pandoc t
 #+PROPERTY: header-args:python+ :dir .
-#+PROPERTY: header-args:python+ :cache yes
 #+PROPERTY: header-args:python+ :tangle yes
 #+PROPERTY: header-args:python+ :exports both
 
@@ -15,6 +14,7 @@
   import pandas as pd
   import numpy as np
   import matplotlib.pyplot as plt
+  np.random.seed(42)
 
   df = pd.read_csv("./algae-1.csv", sep=";").drop(columns=["Unnamed: 0"])
 
@@ -29,7 +29,7 @@
 
 #+end_src
 
-#+RESULTS[ccdc39b9cd2f8144bcdb439ff71510d47aaa5f5b]:
+#+RESULTS:
 :RESULTS:
 |       | wind   | rainfall | discharge | temperature | nb.tides | risk.label |
 |-------+--------+----------+-----------+-------------+----------+------------|
@@ -42,8 +42,6 @@
 | 75%   | 97.5   | 13.3     | 4388.8    | 16.7        | 6.0      | 1.0        |
 | max   | 140.6  | 709.3    | 213128.2  | 41.8        | 14.0     | 1.0        |
 :END:
-
-
 
 * Exploration des données
 
@@ -226,7 +224,7 @@ print(f"f1: {f1_score(y_true, y_pred):.2f}")
 #+end_src
 
 #+RESULTS[b32c7ff6276fa262b06dd814ba99df08fbd9f216]:
-| 0.2760492795990812 | 0.26425591098748263 |
+| 0.2760492795990812 | 0.29763560500695413 |
 
 
 #+begin_src python :exports both
@@ -257,25 +255,15 @@ print(f"f1: {f1_score(y_true, y_pred):.2f}")
 
 #+RESULTS[93529832049286af480039859ae96aa9b43e3658]:
 :RESULTS:
-: /Users/charlesprat/miniconda3/lib/python3.9/site-packages/sklearn/linear_model/_logistic.py:444: ConvergenceWarning: lbfgs failed to converge (status=1):
-: STOP: TOTAL NO. of ITERATIONS REACHED LIMIT.
-: 
-: Increase the number of iterations (max_iter) or scale the data as shown in:
-:     https://scikit-learn.org/stable/modules/preprocessing.html
-: Please also refer to the documentation for alternative solver options:
-:     https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
-:   n_iter_i = _check_optimize_result(
 |                     | precision | recall | f1   |
 |---------------------+-----------+--------+------|
-| naive bayes         | 0.99      | 0.85   | 0.92 |
-| logistic regression | 0.97      | 0.88   | 0.93 |
+| naive bayes         | 0.99      | 0.86   | 0.92 |
+| logistic regression | 0.98      | 0.86   | 0.92 |
 :END:
 
 
 * Estimation bayesienne
 
-#+RESULTS:
-| :foreground | default | :background | default | :scale | 1.0 | :html-foreground | Black | :html-background | Transparent | :html-scale | 1.0 | :matchers | (begin $1 $ $$ \( \[) |
 
 Si on connait la vraisemmblance /f/ des données /D/ sachant le risk.label, on peut prendre une décision basée sur la formule de Bayes. En effet on a:
 
@@ -353,7 +341,7 @@ Si on connait la vraisemmblance /f/ des données /D/ sachant le risk.label, on p
       "discharge": (Distrib(stats.norm), Distrib(stats.weibull_min)),
   }
   clf = AlgaeClassifier(distrib_dict)
-  clf.fit(X_train, y_train)
+  clf.fit(X_train, y_train, en_prior=True)
 
 
   feature_name = "discharge"
@@ -382,7 +370,7 @@ Si on connait la vraisemmblance /f/ des données /D/ sachant le risk.label, on p
 #+end_src
 
 #+RESULTS[1aad9c1d34ee175526a487f707e51f0efe2ab789]:
-[[file:./.ob-jupyter/4ee801cb1273cbd6b554480ab9f5c487afe19548.png]]
+[[file:./.ob-jupyter/b9519682f20ab69f4a11735761be4d4d92aa944c.png]]
 
 
 
@@ -390,6 +378,7 @@ Si on connait la vraisemmblance /f/ des données /D/ sachant le risk.label, on p
 
 #+begin_src python
 
+  p1 = y_train.mean()
   results = pd.DataFrame(
 	data=[clf.get_scores(X_train, y_train),
 	      clf.get_scores(X_test, y_test)],
@@ -401,11 +390,11 @@ Si on connait la vraisemmblance /f/ des données /D/ sachant le risk.label, on p
 
 #+end_src
 
-#+RESULTS[8d7bae4a99f7580a0151d67ef274bf78875b47cb]:
+#+RESULTS:
 :RESULTS:
 |       | accuracy | f1   |
 |-------+----------+------|
-| train | 0.95     | 0.91 |
-| test  | 0.96     | 0.93 |
+| train | 0.96     | 0.92 |
+| test  | 0.96     | 0.92 |
 :END:
 

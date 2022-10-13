@@ -29,10 +29,25 @@ class Distrib:
 
 @dataclass
 class AlgaeClassifier:
+    """ Classifier
+
+    attributes:
+        distrib_dict (dict):
+            keys: name of the features of the dataset
+            values: tuple of 2 distribition to fit, 1st for label=0
+              and the 2nd for label=1
+        log_prior (float): log(p(y=0)/p(y=1))
+
+    """
 
     distrib_dict: dict
+    log_prior: float = 0
 
-    def fit(self, X_train, y_train):
+    def fit(self, X_train, y_train, en_prior=True):
+        """Fit the distributions in distrib_dict knowing y_train"""
+        p1 = y_train.mean()
+        if en_prior:
+            self.log_prior = np.log((1-p1)/p1)
         for name, dists in self.distrib_dict.items():
             for label, dist in enumerate(dists):
                 dist.params = dist.dist.fit(
@@ -50,7 +65,7 @@ class AlgaeClassifier:
             for label, distp in enumerate(distps):
                 llh[label] = llh[label] + np.log(
                     distp.dist.pdf(X[name], *distp.params)+1e-20)
-        return llh[1] > llh[0]
+        return llh[1] > llh[0] + self.log_prior
 
     def get_scores(self, X, y_true):
         y_pred = self.predict(X)
@@ -60,13 +75,14 @@ class AlgaeClassifier:
 
 if __name__ == "__main__":
 
+    np.random.seed(42)
     df_algae = load_algae()
 
     features = df_algae.drop(columns=["rainfall", "risk.label"])
     target = df_algae["risk.label"]
     X_train, X_test, y_train, y_test = train_test_split(
         features, target, test_size=0.15)
-
+    
     distrib_dict = {
         "wind": (Distrib(stats.norm), Distrib(stats.norm)),
         #"temperature": (Distrib(stats.norm), Distrib(stats.norm)),
@@ -74,9 +90,8 @@ if __name__ == "__main__":
     }
 
     clf = AlgaeClassifier(distrib_dict)
-    clf.fit(X_train, y_train)
+    clf.fit(X_train, y_train, en_prior=True)
 
-    print(clf.get_scores(X_train, y_train))
     results = pd.DataFrame(
         data=[clf.get_scores(X_train, y_train),
               clf.get_scores(X_test, y_test)],
@@ -85,5 +100,4 @@ if __name__ == "__main__":
     )
 
     with pd.option_context('display.float_format', '{:0.2f}'.format):
-        print(results)    
- 
+        print(results)
