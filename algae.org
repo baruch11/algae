@@ -43,6 +43,7 @@
 | max   | 140.6  | 709.3    | 213128.2  | 41.8        | 14.0     | 1.0        |
 :END:
 
+
 * Exploration des données
 
 #+begin_src python :exports none
@@ -291,7 +292,7 @@ Si on connait la vraisemmblance /f/ des données /D/ sachant le risk.label, on p
 : SpearmanrResult(correlation=0.06062450480098488, pvalue=2.6911644391237046e-05)
 
 
-*** recherche des type de distribution
+*** recherche des types de distribution
 
 **** QQ-plots 
 
@@ -330,20 +331,57 @@ Si on connait la vraisemmblance /f/ des données /D/ sachant le risk.label, on p
  [[file:./.ob-jupyter/547ef128e6396d7848967395925677f77d9a7314.png]]
 
  
-**** exemple de fit de distribution
+**** fit du modèle complet
+
+***** Fit de la loi de nb.tides
 
 #+begin_src python
-  from libalgae import AlgaeClassifier, Distrib
 
-  distrib_dict = {
+  def fit_poisson(samples):
+
+      vmus = np.arange(1,30,0.1)
+      vlog_llh = np.array([np.sum(stats.poisson.logpmf(samples,vmu))
+			   for vmu in vmus])
+
+      return vmus[np.argmax(vlog_llh)]
+
+  mu_risk0 = fit_poisson(df.loc[label0, "nb.tides"])
+  mu_risk1 = fit_poisson(df.loc[~label0, "nb.tides"])
+  print(f"mu for riskO: {mu_risk0}"
+	f"mu for risk1: {mu_risk1}")
+
+#+end_src
+
+#+RESULTS:
+: mu for riskO: 4.000000000000003mu for risk1: 5.600000000000004
+
+***** Fit des autres features
+
+
+#+begin_src python
+from libalgae import AlgaeClassifier, Distrib
+
+distrib_dict = {
       "wind": (Distrib(stats.norm), Distrib(stats.norm)),
       #"temperature": (Distrib(stats.norm), Distrib(stats.norm)),
       "discharge": (Distrib(stats.norm), Distrib(stats.weibull_min)),
+      "nb.tides": (Distrib(stats.poisson, [mu_risk0]),
+                   Distrib(stats.poisson, [mu_risk1]))
+  
+  
   }
-  clf = AlgaeClassifier(distrib_dict)
-  clf.fit(X_train, y_train, en_prior=True)
+clf = AlgaeClassifier(distrib_dict)
+clf.fit(X_train, y_train, en_prior=True)  
+
+#+end_src
+
+#+RESULTS:
+
+***** Visualisations de la fitness
 
 
+#+begin_src python
+  
   feature_name = "discharge"
   risk0 = df["risk.label"] == 0
 
@@ -373,8 +411,25 @@ Si on connait la vraisemmblance /f/ des données /D/ sachant le risk.label, on p
 [[file:./.ob-jupyter/b9519682f20ab69f4a11735761be4d4d92aa944c.png]]
 
 
+#+begin_src python
+  from scipy import stats
+  f, (ax, ax1) = plt.subplots(1,2,figsize=(6,3))
+  ax.hist(df.loc[label0, "nb.tides"], bins=np.arange(0,20), align = 'left', rwidth=.5, density=True, alpha=.3)
+  vx = np.arange(0,20)
+  ax.plot(vx, stats.poisson.pmf(vx, mu_risk0), '+')
 
-** Performance de l'estimateur
+  ax1.hist(df.loc[~label0, "nb.tides"], bins=np.arange(0,20), align = 'left', rwidth=.5, density=True, alpha=.3)
+  ax1.plot(vx, stats.poisson.pmf(vx, mu_risk1), '+')
+
+  plt.show()
+
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/56abef712e4322c305b9bd4f093eb5e7890e4476.png]]
+
+
+** Performance finale
 
 #+begin_src python
 
@@ -383,18 +438,18 @@ Si on connait la vraisemmblance /f/ des données /D/ sachant le risk.label, on p
 	data=[clf.get_scores(X_train, y_train),
 	      clf.get_scores(X_test, y_test)],
 	index=["train", "test"],
-	columns=["accuracy", "f1"]
+
     )
 
-  results.style.format(precision=2)
+  results.style.format(precision=3)
 
 #+end_src
 
 #+RESULTS:
 :RESULTS:
-|       | accuracy | f1   |
-|-------+----------+------|
-| train | 0.96     | 0.92 |
-| test  | 0.96     | 0.92 |
+|       | accuracy | f1    | precision | recall |
+|-------+----------+-------+-----------+--------|
+| train | 0.960    | 0.923 | 0.966     | 0.884  |
+| test  | 0.955    | 0.920 | 0.989     | 0.860  |
 :END:
 
